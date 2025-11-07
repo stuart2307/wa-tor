@@ -4,6 +4,7 @@ import (
     "image/color"
     "log"
     "math/rand"
+    "fmt"
 
     "github.com/hajimehoshi/ebiten"
 )
@@ -20,14 +21,15 @@ var NumShark = 10
 var NumFish = 10
 var FishBreed = 5
 var SharkBreed = 10
-var Starve = 10
-var SharkEnergyRestore = 5
+var Starve = 5
+var SharkEnergyRestore = 2
 const width = 300
 const height = 300
 var Threads = 1
 
 var blue color.Color = color.RGBA{69, 145, 196, 255}
 var yellow color.Color = color.RGBA{255, 230, 120, 255}
+var red color.Color = color.RGBA{255, 0, 0, 255}
 var grid [width][height]Square = [width][height]Square{}
 var buffer [width][height]Square = [width][height]Square{}
 var count int = 0
@@ -86,28 +88,79 @@ func moveFish() {
     }
 }
 
-/* func moveSharks() {
+func moveSharks() {
     for x := 1; x < width-1; x++ {
         for y := 1; y < height-1; y++ {
             if (grid[x][y].occupied == 1 && grid[x][y].occupant == 2) {
-                n := (grid[x][y+1].occupant << 3) + (grid[x+1][y].occupant << 2) + (grid[x][y-1].occupant << 1) + grid[x-1][y].occupant
-                if (n == 30) {
-                    buffer[x][y] = grid[x][y]
+                grid[x][y].energy--;
+                fmt.Println(fmt.Sprint("Energy ", grid[x][y].energy))
+                if (grid[x][y].energy == 0) {
+                    buffer[x][y] = Square{}
                 } else {
-                    if (grid[x][y].breed == SharkBreed) {
-                        grid[x][y].breed = -1
+                    n := (grid[x][y+1].occupant << 3) + (grid[x+1][y].occupant << 2) + (grid[x][y-1].occupant << 1) + grid[x-1][y].occupant
+                    if (n == 30) {
                         buffer[x][y] = grid[x][y]
                     } else {
-                        buffer[x][y].occupant = 0
-                        buffer[x][y].occupied = 0
+                        if (grid[x][y].breed == SharkBreed) {
+                            grid[x][y].breed = -1
+                            buffer[x][y] = grid[x][y]
+                        } else {
+                            buffer[x][y].occupant = 0
+                            buffer[x][y].occupied = 0
+                        }
+                        //fish are 0, else is 1
+                        var n = ^((grid[x][y+1].occupant%2 << 3) + (grid[x+1][y].occupant%2 << 2) + (grid[x][y-1].occupant%2 << 1) + grid[x-1][y].occupant%2) & 15
+                        if (n == 15) {
+                            n = (grid[x][y+1].occupied << 3) + (grid[x+1][y].occupied << 2) + (grid[x][y-1].occupied << 1) + grid[x-1][y].occupied
+                        }
+                        var choice = 1 << rand.Intn(4)
+                        for (choice != -1) {
+                            if (n & choice == 0) {
+                                switch choice {
+                                case 1:
+                                    buffer[x-1][y] = grid[x][y]
+                                    buffer[x-1][y].breed++;
+                                    buffer[x-1][y].energy += SharkEnergyRestore * grid[x-1][y].occupant
+                                    if (buffer[x-1][y].energy > Starve) {buffer[x-1][y].energy = Starve}
+                                    choice = -1
+                                    break
+                                case 2:
+                                    buffer[x][y-1] = grid[x][y]
+                                    buffer[x][y-1].breed++;
+                                    buffer[x][y-1].energy += SharkEnergyRestore * grid[x][y-1].occupant
+                                    if (buffer[x][y-1].energy > Starve) {buffer[x][y-1].energy = Starve}
+                                    choice = -1
+                                    break
+                                case 4:
+                                    buffer[x+1][y] = grid[x][y]
+                                    buffer[x+1][y].breed++;
+                                    buffer[x+1][y].energy += SharkEnergyRestore * grid[x+1][y].occupant
+                                    if (buffer[x+1][y].energy > Starve) {buffer[x+1][y].energy = Starve}
+                                    choice = -1
+                                    break
+                                case 8:  
+                                    buffer[x][y+1] = grid[x][y]
+                                    buffer[x][y+1].breed++;
+                                    buffer[x][y+1].energy += SharkEnergyRestore * grid[x][y+1].occupant
+                                    if (buffer[x][y+1].energy > Starve) {buffer[x][y+1].energy = Starve}
+                                    choice = -1
+                                    break
+                                }
+                            }
+                            if (choice != -1) {
+                                choice = choice << 1
+                                if (choice > 8) {
+                                    choice = 1
+                                }
+                            }
+                        }
                     }
-                    n := (grid[x][y+1].occupant%2 << 3) + (grid[x+1][y].occupant%2 << 2) + (grid[x][y-1].occupant%2 << 1) + grid[x-1][y].occupant%2
-                    if (n > 0)
                 }
             }
         }
     }
-} */
+}
+
 
 func update() error {
     for x := 0; x < width; x++ {
@@ -116,6 +169,7 @@ func update() error {
         }
     }
     moveFish()
+    moveSharks()
     temp := buffer
     buffer = grid
     grid = temp
@@ -129,8 +183,10 @@ func display(window *ebiten.Image) {
         for y := 0; y < height; y++ {
             for i := 0; i < scale; i++ {
                 for j := 0; j < scale; j++ {
-                    if grid[x][y].occupied == 1 {
+                    if grid[x][y].occupant == 1 {
                         window.Set(x*scale+i, y*scale+j, yellow)
+                    } else if grid[x][y].occupant == 2 {
+                        window.Set(x*scale+i, y*scale+j, red)
                     }
                 }
             }
@@ -141,7 +197,7 @@ func display(window *ebiten.Image) {
 func frame(window *ebiten.Image) error {
     count++
     var err error = nil
-    if count == 1 {
+    if count == 10 {
         err = update()
         count = 0
     }
@@ -155,10 +211,17 @@ func frame(window *ebiten.Image) error {
 func main() {
     for x := 1; x < width-1; x++ {
         for y := 1; y < height-1; y++ {
-            if rand.Float32() < 0.1 {
+            var n = rand.Float32()
+            if n < 0.1 {
                 grid[x][y].occupant = 1
                 grid[x][y].occupied = 1
-            }
+                grid[x][y].breed = 0
+            } else if n < 0.2 {
+                grid[x][y].occupant = 2
+                grid[x][y].occupied = 1
+                grid[x][y].breed = 0
+                grid[x][y].energy = Starve
+            } 
         }
     }
 
