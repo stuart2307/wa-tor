@@ -17,12 +17,11 @@ type Square struct {
 }
 
 const scale int = 2
-var NumShark = 30000
-var NumFish = 10000
-var FishBreed = 5
+var NumShark = 10000
+var NumFish = 70000
+var FishBreed = 10
 var SharkBreed = 10
 var Starve = 10
-var SharkEnergyRestore = 2
 const width = 300
 const height = 300
 var Threads = 1
@@ -127,30 +126,30 @@ func moveSharks() {
                             if (n & choice == 0) {
                                 switch choice {
                                 case 1:
+                                    grid[x][y].energy += Starve * (buffer[wrap(x-1, width)][y].occupant % 2)
                                     buffer[wrap(x-1, width)][y] = grid[x][y]
                                     buffer[wrap(x-1, width)][y].breed++;
-                                    buffer[wrap(x-1, width)][y].energy += SharkEnergyRestore * grid[wrap(x-1, width)][y].occupant
                                     if (buffer[wrap(x-1, width)][y].energy > Starve) {buffer[wrap(x-1, width)][y].energy = Starve}
                                     choice = -1
                                     break
                                 case 2:
+                                    grid[x][y].energy += Starve * (buffer[x][wrap(y-1, height)].occupant % 2)
                                     buffer[x][wrap(y-1, height)] = grid[x][y]
                                     buffer[x][wrap(y-1, height)].breed++;
-                                    buffer[x][wrap(y-1, height)].energy += SharkEnergyRestore * grid[x][wrap(y-1, height)].occupant
                                     if (buffer[x][wrap(y-1, height)].energy > Starve) {buffer[x][wrap(y-1, height)].energy = Starve}
                                     choice = -1
                                     break
                                 case 4:
+                                    grid[x][y].energy += Starve * (buffer[wrap(x+1, width)][y].occupant % 2)
                                     buffer[wrap(x+1, width)][y] = grid[x][y]
                                     buffer[wrap(x+1, width)][y].breed++;
-                                    buffer[wrap(x+1, width)][y].energy += SharkEnergyRestore * grid[wrap(x+1, width)][y].occupant
                                     if (buffer[wrap(x+1, width)][y].energy > Starve) {buffer[wrap(x+1, width)][y].energy = Starve}
                                     choice = -1
                                     break
                                 case 8:  
+                                    grid[x][y].energy += Starve * (buffer[x][wrap(y+1, height)].occupant % 2)
                                     buffer[x][wrap(y+1, height)] = grid[x][y]
                                     buffer[x][wrap(y+1, height)].breed++;
-                                    buffer[x][wrap(y+1, height)].energy += SharkEnergyRestore * grid[x][wrap(y+1, height)].occupant
                                     if (buffer[x][wrap(y+1, height)].energy > Starve) {buffer[x][wrap(y+1, height)].energy = Starve}
                                     choice = -1
                                     break
