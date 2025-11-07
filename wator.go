@@ -4,7 +4,7 @@ import (
     "image/color"
     "log"
     "math/rand"
-    "fmt"
+    "time"
 
     "github.com/hajimehoshi/ebiten"
 )
@@ -17,11 +17,11 @@ type Square struct {
 }
 
 const scale int = 2
-var NumShark = 10
-var NumFish = 10
+var NumShark = 30000
+var NumFish = 10000
 var FishBreed = 5
 var SharkBreed = 10
-var Starve = 5
+var Starve = 10
 var SharkEnergyRestore = 2
 const width = 300
 const height = 300
@@ -34,11 +34,21 @@ var grid [width][height]Square = [width][height]Square{}
 var buffer [width][height]Square = [width][height]Square{}
 var count int = 0
 
+func wrap(num int, edge int) int {
+    if (num == -1) {
+        return edge - 1
+    } else if (num == edge) {
+        return 0
+    } else {
+        return num
+    }
+}
+
 func moveFish() {
-    for x := 1; x < width-1; x++ {
-        for y := 1; y < height-1; y++ {
+    for x := 0; x < width; x++ {
+        for y := 0; y < height; y++ {
             if (grid[x][y].occupied == 1 && grid[x][y].occupant == 1) {
-                n := (grid[x][y+1].occupied << 3) + (grid[x+1][y].occupied << 2) + (grid[x][y-1].occupied << 1) + grid[x-1][y].occupied
+                n := (grid[x][wrap(y+1, height)].occupied << 3) + (grid[wrap(x+1, width)][y].occupied << 2) + (grid[x][wrap(y-1, height)].occupied << 1) + grid[wrap(x-1, width)][y].occupied
                 if (n == 15) {
                     buffer[x][y] = grid[x][y]
                 } else {
@@ -54,23 +64,23 @@ func moveFish() {
                         if (n & choice == 0) {
                             switch choice {
                             case 1:
-                                buffer[x-1][y] = grid[x][y]
-                                buffer[x-1][y].breed++;
+                                buffer[wrap(x-1, width)][y] = grid[x][y]
+                                buffer[wrap(x-1, width)][y].breed++;
                                 choice = -1
                                 break
                             case 2:
-                                buffer[x][y-1] = grid[x][y]
-                                buffer[x][y-1].breed++;
+                                buffer[x][wrap(y-1, height)] = grid[x][y]
+                                buffer[x][wrap(y-1, height)].breed++;
                                 choice = -1
                                 break
                             case 4:
-                                buffer[x+1][y] = grid[x][y]
-                                buffer[x+1][y].breed++;
+                                buffer[wrap(x+1, width)][y] = grid[x][y]
+                                buffer[wrap(x+1, width)][y].breed++;
                                 choice = -1
                                 break
                             case 8: 
-                                buffer[x][y+1] = grid[x][y]
-                                buffer[x][y+1].breed++;
+                                buffer[x][wrap(y+1, height)] = grid[x][y]
+                                buffer[x][wrap(y+1, height)].breed++;
                                 choice = -1
                                 break
                             }
@@ -89,15 +99,14 @@ func moveFish() {
 }
 
 func moveSharks() {
-    for x := 1; x < width-1; x++ {
-        for y := 1; y < height-1; y++ {
+    for x := 0; x < width; x++ {
+        for y := 0; y < height; y++ {
             if (grid[x][y].occupied == 1 && grid[x][y].occupant == 2) {
                 grid[x][y].energy--;
-                fmt.Println(fmt.Sprint("Energy ", grid[x][y].energy))
                 if (grid[x][y].energy == 0) {
                     buffer[x][y] = Square{}
                 } else {
-                    n := (grid[x][y+1].occupant << 3) + (grid[x+1][y].occupant << 2) + (grid[x][y-1].occupant << 1) + grid[x-1][y].occupant
+                    n := (grid[x][wrap(y+1, height)].occupant << 3) + (grid[wrap(x+1, width)][y].occupant << 2) + (grid[x][wrap(y-1, height)].occupant << 1) + grid[wrap(x-1, width)][y].occupant
                     if (n == 30) {
                         buffer[x][y] = grid[x][y]
                     } else {
@@ -109,40 +118,40 @@ func moveSharks() {
                             buffer[x][y].occupied = 0
                         }
                         //fish are 0, else is 1
-                        var n = ^((grid[x][y+1].occupant%2 << 3) + (grid[x+1][y].occupant%2 << 2) + (grid[x][y-1].occupant%2 << 1) + grid[x-1][y].occupant%2) & 15
+                        var n = ^((grid[x][wrap(y+1, height)].occupant%2 << 3) + (grid[wrap(x+1, width)][y].occupant%2 << 2) + (grid[x][wrap(y-1, height)].occupant%2 << 1) + grid[wrap(x-1, width)][y].occupant%2) & 15
                         if (n == 15) {
-                            n = (grid[x][y+1].occupied << 3) + (grid[x+1][y].occupied << 2) + (grid[x][y-1].occupied << 1) + grid[x-1][y].occupied
+                            n = (grid[x][wrap(y+1, height)].occupied << 3) + (grid[wrap(x+1, width)][y].occupied << 2) + (grid[x][wrap(y-1, height)].occupied << 1) + grid[wrap(x-1, width)][y].occupied
                         }
                         var choice = 1 << rand.Intn(4)
                         for (choice != -1) {
                             if (n & choice == 0) {
                                 switch choice {
                                 case 1:
-                                    buffer[x-1][y] = grid[x][y]
-                                    buffer[x-1][y].breed++;
-                                    buffer[x-1][y].energy += SharkEnergyRestore * grid[x-1][y].occupant
-                                    if (buffer[x-1][y].energy > Starve) {buffer[x-1][y].energy = Starve}
+                                    buffer[wrap(x-1, width)][y] = grid[x][y]
+                                    buffer[wrap(x-1, width)][y].breed++;
+                                    buffer[wrap(x-1, width)][y].energy += SharkEnergyRestore * grid[wrap(x-1, width)][y].occupant
+                                    if (buffer[wrap(x-1, width)][y].energy > Starve) {buffer[wrap(x-1, width)][y].energy = Starve}
                                     choice = -1
                                     break
                                 case 2:
-                                    buffer[x][y-1] = grid[x][y]
-                                    buffer[x][y-1].breed++;
-                                    buffer[x][y-1].energy += SharkEnergyRestore * grid[x][y-1].occupant
-                                    if (buffer[x][y-1].energy > Starve) {buffer[x][y-1].energy = Starve}
+                                    buffer[x][wrap(y-1, height)] = grid[x][y]
+                                    buffer[x][wrap(y-1, height)].breed++;
+                                    buffer[x][wrap(y-1, height)].energy += SharkEnergyRestore * grid[x][wrap(y-1, height)].occupant
+                                    if (buffer[x][wrap(y-1, height)].energy > Starve) {buffer[x][wrap(y-1, height)].energy = Starve}
                                     choice = -1
                                     break
                                 case 4:
-                                    buffer[x+1][y] = grid[x][y]
-                                    buffer[x+1][y].breed++;
-                                    buffer[x+1][y].energy += SharkEnergyRestore * grid[x+1][y].occupant
-                                    if (buffer[x+1][y].energy > Starve) {buffer[x+1][y].energy = Starve}
+                                    buffer[wrap(x+1, width)][y] = grid[x][y]
+                                    buffer[wrap(x+1, width)][y].breed++;
+                                    buffer[wrap(x+1, width)][y].energy += SharkEnergyRestore * grid[wrap(x+1, width)][y].occupant
+                                    if (buffer[wrap(x+1, width)][y].energy > Starve) {buffer[wrap(x+1, width)][y].energy = Starve}
                                     choice = -1
                                     break
                                 case 8:  
-                                    buffer[x][y+1] = grid[x][y]
-                                    buffer[x][y+1].breed++;
-                                    buffer[x][y+1].energy += SharkEnergyRestore * grid[x][y+1].occupant
-                                    if (buffer[x][y+1].energy > Starve) {buffer[x][y+1].energy = Starve}
+                                    buffer[x][wrap(y+1, height)] = grid[x][y]
+                                    buffer[x][wrap(y+1, height)].breed++;
+                                    buffer[x][wrap(y+1, height)].energy += SharkEnergyRestore * grid[x][wrap(y+1, height)].occupant
+                                    if (buffer[x][wrap(y+1, height)].energy > Starve) {buffer[x][wrap(y+1, height)].energy = Starve}
                                     choice = -1
                                     break
                                 }
@@ -204,28 +213,33 @@ func frame(window *ebiten.Image) error {
     if !ebiten.IsDrawingSkipped() {
         display(window)
     }
-
     return err
 }
 
 func main() {
-    for x := 1; x < width-1; x++ {
-        for y := 1; y < height-1; y++ {
-            var n = rand.Float32()
-            if n < 0.1 {
-                grid[x][y].occupant = 1
-                grid[x][y].occupied = 1
-                grid[x][y].breed = 0
-            } else if n < 0.2 {
-                grid[x][y].occupant = 2
-                grid[x][y].occupied = 1
-                grid[x][y].breed = 0
-                grid[x][y].energy = Starve
-            } 
-        }
+    rand.Seed(time.Now().UnixMicro())
+    flatGrid := make([]Square, width*height)
+    for i := 0; i < NumFish; i++ {
+        flatGrid[i].occupant = 1
+        flatGrid[i].occupied = 1
+        flatGrid[i].breed = 0
     }
-
-    if err := ebiten.Run(frame, width, height, 2, "Game of Life"); err != nil {
+    for i := NumFish; i < NumFish + NumShark; i++ {
+        flatGrid[i].occupant = 2
+        flatGrid[i].occupied = 1
+        flatGrid[i].breed = 0
+        flatGrid[i].energy = Starve
+    }
+    rand.Shuffle(len(flatGrid), func(i int, j int) {
+        flatGrid[i], flatGrid[j] = flatGrid[j], flatGrid[i]
+    })
+    for x := 0; x < width*height; x++ {
+        grid[x%width][x/width].occupied = flatGrid[x].occupied
+        grid[x%width][x/width].occupant = flatGrid[x].occupant
+        grid[x%width][x/width].breed = flatGrid[x].breed
+        grid[x%width][x/width].energy = flatGrid[x].energy
+    }
+    if err := ebiten.Run(frame, width, height, 2, "Wa-Tor"); err != nil {
         log.Fatal(err)
     }
 }
