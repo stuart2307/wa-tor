@@ -16,14 +16,14 @@ type Square struct {
     breed int
 }
 
-const scale int = 2
-var NumShark = 10000
-var NumFish = 70000
-var FishBreed = 10
-var SharkBreed = 10
-var Starve = 10
-const width = 300
-const height = 300
+const scale int = 1
+var NumShark = 100000
+var NumFish = 20000
+var FishBreed = 5
+var SharkBreed = 8
+var Starve = 5
+const width = 800
+const height = 800
 var Threads = 1
 
 var blue color.Color = color.RGBA{69, 145, 196, 255}
@@ -50,46 +50,62 @@ func moveFish() {
                 n := (grid[x][wrap(y+1, height)].occupied << 3) + (grid[wrap(x+1, width)][y].occupied << 2) + (grid[x][wrap(y-1, height)].occupied << 1) + grid[wrap(x-1, width)][y].occupied
                 if (n == 15) {
                     buffer[x][y] = grid[x][y]
+                } else if (buffer[x][y].occupant == 2) {
+
                 } else {
                     if (grid[x][y].breed == FishBreed) {
                         grid[x][y].breed = -1
                         buffer[x][y] = grid[x][y]
                     } else {
-                        buffer[x][y].occupant = 0
-                        buffer[x][y].occupied = 0
+                        buffer[x][y] = Square{}
                     }
-                    var choice = 1 << rand.Intn(4)
-                    for (choice != -1) {
-                        if (n & choice == 0) {
-                            switch choice {
+                    directions := []int{1, 2, 4, 8}
+                    rand.Shuffle(4, func(i int, j int) {
+                        directions[i], directions[j] = directions[j], directions[i]
+                    })
+                    moved := false
+                    for choice := 0; choice < 4; choice++ {
+                        if (n & directions[choice] == 0) {
+                            switch directions[choice] {
                             case 1:
-                                buffer[wrap(x-1, width)][y] = grid[x][y]
-                                buffer[wrap(x-1, width)][y].breed++;
-                                choice = -1
+                                if (buffer[wrap(x-1, width)][y].occupied == 0) {
+                                    buffer[wrap(x-1, width)][y] = grid[x][y]
+                                    buffer[wrap(x-1, width)][y].breed++;
+                                    choice = 5
+                                    moved = true
+                                }
                                 break
                             case 2:
-                                buffer[x][wrap(y-1, height)] = grid[x][y]
-                                buffer[x][wrap(y-1, height)].breed++;
-                                choice = -1
+                                if (buffer[x][wrap(y-1, height)].occupied == 0) {
+                                    buffer[x][wrap(y-1, height)] = grid[x][y]
+                                    buffer[x][wrap(y-1, height)].breed++;
+                                    choice = 5
+                                    moved = true
+                                }
                                 break
                             case 4:
-                                buffer[wrap(x+1, width)][y] = grid[x][y]
-                                buffer[wrap(x+1, width)][y].breed++;
-                                choice = -1
+                                if (buffer[wrap(x+1, width)][y].occupied == 0) {
+                                    buffer[wrap(x+1, width)][y] = grid[x][y]
+                                    buffer[wrap(x+1, width)][y].breed++;
+                                    choice = 5
+                                    moved = true
+                                }
                                 break
                             case 8: 
-                                buffer[x][wrap(y+1, height)] = grid[x][y]
-                                buffer[x][wrap(y+1, height)].breed++;
-                                choice = -1
+                                if (buffer[x][wrap(y+1, height)].occupied == 0) {
+                                    buffer[x][wrap(y+1, height)] = grid[x][y]
+                                    buffer[x][wrap(y+1, height)].breed++;
+                                    choice = 5
+                                    moved = true
+                                }
                                 break
                             }
                         }
-                        if (choice != -1) {
-                            choice = choice << 1
-                            if (choice > 8) {
-                                choice = 1
-                            }
-                        }
+                        
+                    }
+                    if (!moved) {
+                        grid[x][y].breed++;
+                        buffer[x][y] = grid[x][y]
                     }
                 }
             }
@@ -113,53 +129,67 @@ func moveSharks() {
                             grid[x][y].breed = -1
                             buffer[x][y] = grid[x][y]
                         } else {
-                            buffer[x][y].occupant = 0
-                            buffer[x][y].occupied = 0
+                            buffer[x][y] = Square{}
                         }
                         //fish are 0, else is 1
                         var n = ^((grid[x][wrap(y+1, height)].occupant%2 << 3) + (grid[wrap(x+1, width)][y].occupant%2 << 2) + (grid[x][wrap(y-1, height)].occupant%2 << 1) + grid[wrap(x-1, width)][y].occupant%2) & 15
                         if (n == 15) {
                             n = (grid[x][wrap(y+1, height)].occupied << 3) + (grid[wrap(x+1, width)][y].occupied << 2) + (grid[x][wrap(y-1, height)].occupied << 1) + grid[wrap(x-1, width)][y].occupied
                         }
-                        var choice = 1 << rand.Intn(4)
-                        for (choice != -1) {
+                        directions := []int{1, 2, 4, 8}
+                        rand.Shuffle(4, func(i int, j int) {
+                            directions[i], directions[j] = directions[j], directions[i]
+                        })
+                        moved := false
+                        for choice := 0; choice < 4; choice++ {
                             if (n & choice == 0) {
-                                switch choice {
+                                switch directions[choice] {
                                 case 1:
-                                    grid[x][y].energy += Starve * (buffer[wrap(x-1, width)][y].occupant % 2)
-                                    buffer[wrap(x-1, width)][y] = grid[x][y]
-                                    buffer[wrap(x-1, width)][y].breed++;
-                                    if (buffer[wrap(x-1, width)][y].energy > Starve) {buffer[wrap(x-1, width)][y].energy = Starve}
-                                    choice = -1
+                                    if (buffer[wrap(x-1, width)][y].occupant != 2) {
+                                        grid[x][y].energy += Starve * (buffer[wrap(x-1, width)][y].occupant % 2)
+                                        buffer[wrap(x-1, width)][y] = grid[x][y]
+                                        buffer[wrap(x-1, width)][y].breed++;
+                                        if (buffer[wrap(x-1, width)][y].energy > Starve) {buffer[wrap(x-1, width)][y].energy = Starve}
+                                        choice = 5
+                                        moved = true
+                                    }
                                     break
                                 case 2:
-                                    grid[x][y].energy += Starve * (buffer[x][wrap(y-1, height)].occupant % 2)
-                                    buffer[x][wrap(y-1, height)] = grid[x][y]
-                                    buffer[x][wrap(y-1, height)].breed++;
-                                    if (buffer[x][wrap(y-1, height)].energy > Starve) {buffer[x][wrap(y-1, height)].energy = Starve}
-                                    choice = -1
+                                    if (buffer[x][wrap(y-1, height)].occupant != 2) {
+                                       grid[x][y].energy += Starve * (buffer[x][wrap(y-1, height)].occupant % 2)
+                                        buffer[x][wrap(y-1, height)] = grid[x][y]
+                                        buffer[x][wrap(y-1, height)].breed++;
+                                        if (buffer[x][wrap(y-1, height)].energy > Starve) {buffer[x][wrap(y-1, height)].energy = Starve}
+                                        choice = 5
+                                        moved = true
+                                    }
                                     break
                                 case 4:
-                                    grid[x][y].energy += Starve * (buffer[wrap(x+1, width)][y].occupant % 2)
-                                    buffer[wrap(x+1, width)][y] = grid[x][y]
-                                    buffer[wrap(x+1, width)][y].breed++;
-                                    if (buffer[wrap(x+1, width)][y].energy > Starve) {buffer[wrap(x+1, width)][y].energy = Starve}
-                                    choice = -1
+                                    if (buffer[wrap(x+1, width)][y].occupant != 2) {
+                                        grid[x][y].energy += Starve * (buffer[wrap(x+1, width)][y].occupant % 2)
+                                        buffer[wrap(x+1, width)][y] = grid[x][y]
+                                        buffer[wrap(x+1, width)][y].breed++;
+                                        if (buffer[wrap(x+1, width)][y].energy > Starve) {buffer[wrap(x+1, width)][y].energy = Starve}
+                                        choice = 5
+                                        moved = true
+                                    }
                                     break
                                 case 8:  
-                                    grid[x][y].energy += Starve * (buffer[x][wrap(y+1, height)].occupant % 2)
-                                    buffer[x][wrap(y+1, height)] = grid[x][y]
-                                    buffer[x][wrap(y+1, height)].breed++;
-                                    if (buffer[x][wrap(y+1, height)].energy > Starve) {buffer[x][wrap(y+1, height)].energy = Starve}
-                                    choice = -1
+                                    if (buffer[x][wrap(y+1, height)].occupant != 2) {
+                                        grid[x][y].energy += Starve * (buffer[x][wrap(y+1, height)].occupant % 2)
+                                        buffer[x][wrap(y+1, height)] = grid[x][y]
+                                        buffer[x][wrap(y+1, height)].breed++;
+                                        if (buffer[x][wrap(y+1, height)].energy > Starve) {buffer[x][wrap(y+1, height)].energy = Starve}
+                                        choice = 5
+                                        moved = true
+                                    }
                                     break
                                 }
                             }
-                            if (choice != -1) {
-                                choice = choice << 1
-                                if (choice > 8) {
-                                    choice = 1
-                                }
+                            }
+                            if (!moved) {
+                                grid[x][y].breed++;
+                                buffer[x][y] = grid[x][y]
                             }
                         }
                     }
@@ -167,7 +197,6 @@ func moveSharks() {
             }
         }
     }
-}
 
 
 func update() error {
@@ -178,9 +207,7 @@ func update() error {
     }
     moveFish()
     moveSharks()
-    temp := buffer
-    buffer = grid
-    grid = temp
+    grid = buffer
     return nil
 }
 
@@ -205,7 +232,7 @@ func display(window *ebiten.Image) {
 func frame(window *ebiten.Image) error {
     count++
     var err error = nil
-    if count == 10 {
+    if count == 1 {
         err = update()
         count = 0
     }
@@ -238,6 +265,7 @@ func main() {
         grid[x%width][x/width].breed = flatGrid[x].breed
         grid[x%width][x/width].energy = flatGrid[x].energy
     }
+    buffer = grid
     if err := ebiten.Run(frame, width, height, 2, "Wa-Tor"); err != nil {
         log.Fatal(err)
     }
