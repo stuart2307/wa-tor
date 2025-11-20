@@ -17,11 +17,11 @@ type Square struct {
 }
 
 const scale int = 1
-var NumShark = 100000
-var NumFish = 20000
+var NumShark = 20000
+var NumFish = 200000
 var FishBreed = 5
-var SharkBreed = 8
-var Starve = 5
+var SharkBreed = 10
+var Starve = 8
 const width = 800
 const height = 800
 var Threads = 1
@@ -132,7 +132,7 @@ func moveSharks() {
                             buffer[x][y] = Square{}
                         }
                         //fish are 0, else is 1
-                        var n = ^((grid[x][wrap(y+1, height)].occupant%2 << 3) + (grid[wrap(x+1, width)][y].occupant%2 << 2) + (grid[x][wrap(y-1, height)].occupant%2 << 1) + grid[wrap(x-1, width)][y].occupant%2) & 15
+                        var n = (^((grid[x][wrap(y+1, height)].occupant%2 << 3) + (grid[wrap(x+1, width)][y].occupant%2 << 2) + (grid[x][wrap(y-1, height)].occupant%2 << 1) + grid[wrap(x-1, width)][y].occupant%2)) & 15
                         if (n == 15) {
                             n = (grid[x][wrap(y+1, height)].occupied << 3) + (grid[wrap(x+1, width)][y].occupied << 2) + (grid[x][wrap(y-1, height)].occupied << 1) + grid[wrap(x-1, width)][y].occupied
                         }
@@ -142,11 +142,11 @@ func moveSharks() {
                         })
                         moved := false
                         for choice := 0; choice < 4; choice++ {
-                            if (n & choice == 0) {
+                            if (n & directions[choice] == 0) {
                                 switch directions[choice] {
                                 case 1:
                                     if (buffer[wrap(x-1, width)][y].occupant != 2) {
-                                        grid[x][y].energy += Starve * (buffer[wrap(x-1, width)][y].occupant % 2)
+                                        grid[x][y].energy += Starve * (grid[wrap(x-1, width)][y].occupant % 2)
                                         buffer[wrap(x-1, width)][y] = grid[x][y]
                                         buffer[wrap(x-1, width)][y].breed++;
                                         if (buffer[wrap(x-1, width)][y].energy > Starve) {buffer[wrap(x-1, width)][y].energy = Starve}
@@ -156,7 +156,7 @@ func moveSharks() {
                                     break
                                 case 2:
                                     if (buffer[x][wrap(y-1, height)].occupant != 2) {
-                                       grid[x][y].energy += Starve * (buffer[x][wrap(y-1, height)].occupant % 2)
+                                       grid[x][y].energy += Starve * (grid[x][wrap(y-1, height)].occupant % 2)
                                         buffer[x][wrap(y-1, height)] = grid[x][y]
                                         buffer[x][wrap(y-1, height)].breed++;
                                         if (buffer[x][wrap(y-1, height)].energy > Starve) {buffer[x][wrap(y-1, height)].energy = Starve}
@@ -166,7 +166,7 @@ func moveSharks() {
                                     break
                                 case 4:
                                     if (buffer[wrap(x+1, width)][y].occupant != 2) {
-                                        grid[x][y].energy += Starve * (buffer[wrap(x+1, width)][y].occupant % 2)
+                                        grid[x][y].energy += Starve * (grid[wrap(x+1, width)][y].occupant % 2)
                                         buffer[wrap(x+1, width)][y] = grid[x][y]
                                         buffer[wrap(x+1, width)][y].breed++;
                                         if (buffer[wrap(x+1, width)][y].energy > Starve) {buffer[wrap(x+1, width)][y].energy = Starve}
@@ -176,7 +176,7 @@ func moveSharks() {
                                     break
                                 case 8:  
                                     if (buffer[x][wrap(y+1, height)].occupant != 2) {
-                                        grid[x][y].energy += Starve * (buffer[x][wrap(y+1, height)].occupant % 2)
+                                        grid[x][y].energy += Starve * (grid[x][wrap(y+1, height)].occupant % 2)
                                         buffer[x][wrap(y+1, height)] = grid[x][y]
                                         buffer[x][wrap(y+1, height)].breed++;
                                         if (buffer[x][wrap(y+1, height)].energy > Starve) {buffer[x][wrap(y+1, height)].energy = Starve}
