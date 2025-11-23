@@ -1,14 +1,36 @@
+// Wator Concurrent Implementation
+// Created: 23/11/25
+//	Copyright (C) 2025 Stuart Rossiter
+//
+//    This program is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 package main
 
 import (
 	"image/color"
 	"log"
 	"math/rand"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten"
 )
 
-// Water = 0, Fish = 1, Shark = 2
+// Occupied: No = 0, Yes = 1
+// Occupant: Water = 0, Fish = 1, Shark = 2
+// Energy: Sharks' energy meter
+// Breed: Turns since last breed
 type Square struct {
 	occupied int
 	occupant int
@@ -18,16 +40,16 @@ type Square struct {
 
 const scale int = 1
 
-var NumShark = 10000
-var NumFish = 200000
+var NumShark = 20000
+var NumFish = 300000
 var FishBreed = 5
 var SharkBreed = 6
 var Starve = 4
 
-const width = 1000
-const height = 800
+const width = 960
+const height = 540
 
-var Threads = 1
+var Threads = 4
 
 var blue color.Color = color.RGBA{69, 145, 196, 255}
 var yellow color.Color = color.RGBA{255, 230, 120, 255}
@@ -220,9 +242,44 @@ func update() error {
 	return nil
 }
 
-//func concUpdate() error {
-//buffer = [width][height]Square{}
-//}
+func processData(ystart, ylen int) {
+	for x := 0; x < width; x++ {
+		for y := ystart; y < ystart+ylen; y++ {
+			if grid[x][y].occupant == 1 {
+				moveFish(x, y)
+			} else if grid[x][y].occupant == 2 {
+				moveSharks(x, y)
+				if x == y {
+					println("Energy: ", grid[x][y].energy)
+				}
+
+			}
+		}
+	}
+}
+
+func concUpdate() error {
+	buffer = [width][height]Square{}
+	var wg = sync.WaitGroup{}
+	jobs := make(chan int, Threads)
+	for i := 0; i < Threads; i++ {
+		wg.Add(1)
+		go func(id int) {
+			for row := range jobs {
+				processData(row, 10)
+			}
+			wg.Done()
+		}(i)
+	}
+	for row := 0; row < height; row += 10 {
+		jobs <- row
+	}
+	close(jobs)
+
+	wg.Wait()
+	grid = buffer
+	return nil
+}
 
 func display(window *ebiten.Image) {
 	window.Fill(blue)
@@ -246,7 +303,7 @@ func frame(window *ebiten.Image) error {
 	count++
 	var err error = nil
 	if count == 1 {
-		err = update()
+		err = concUpdate()
 		count = 0
 	}
 	if !ebiten.IsDrawingSkipped() {
@@ -261,6 +318,7 @@ func main() {
 		flatGrid[i].occupant = 1
 		flatGrid[i].occupied = 1
 		flatGrid[i].breed = 0
+		flatGrid[i].energy = 0
 	}
 	for i := NumFish; i < NumFish+NumShark; i++ {
 		flatGrid[i].occupant = 2
@@ -277,8 +335,7 @@ func main() {
 		grid[x%width][x/width].breed = flatGrid[x].breed
 		grid[x%width][x/width].energy = flatGrid[x].energy
 	}
-	buffer = grid
-	if err := ebiten.Run(frame, width, height, 2, "Wa-Tor"); err != nil {
+	if err := ebiten.Run(frame, width, height, 2, "Concurrent Wa-Tor"); err != nil {
 		log.Fatal(err)
 	}
 }
