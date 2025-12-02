@@ -24,6 +24,7 @@ import (
 	"log"
 	"math/rand"
 	"time"
+	"os"
 
 	"github.com/hajimehoshi/ebiten"
 )
@@ -40,22 +41,22 @@ type Square struct {
 }
 
 // How many pixels a square's dimensions are.
-const scale int = 1
+const scale = 1
 
 // NumShark = Number of starting sharks.
 // NumFish = Number of starting fish.
 // FishBreed = Number of turns it takes for a fish to breed.
 // SharkBreed = Number of turns it takes for a shark to breed.
 // Starve = How many turns it takes for a shark to starve (Max Energy)
-var NumShark = 10000
+var NumShark = 20000
 var NumFish = 200000
 var FishBreed = 5
 var SharkBreed = 6
 var Starve = 4
 var startTime time.Time
 
-const width = 1000
-const height = 800
+const width = 1600
+const height = 900
 
 var Threads = 1
 var chronon = 0
@@ -296,6 +297,7 @@ func Frame(window *ebiten.Image) error {
 	if chronon == 1000 {
 		var now = time.Since(startTime)
 		fmt.Println(now)
+		os.Exit(0)
 	}
 	return err
 }
@@ -326,7 +328,7 @@ func main() {
 	}
 	buffer = grid
 	startTime = time.Now()
-	if err := ebiten.Run(Frame, width, height, 2, "Wa-Tor"); err != nil {
+	if err := ebiten.Run(Frame, width, height, scale, "Wa-Tor"); err != nil {
 		log.Fatal(err)
 	}
 }

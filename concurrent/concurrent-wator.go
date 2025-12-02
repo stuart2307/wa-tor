@@ -41,21 +41,21 @@ type Square struct {
 	breed    int
 }
 
-const scale int = 1
+const scale = 1
 
 var NumShark = 20000
-var NumFish = 300000
+var NumFish = 200000
 var FishBreed = 5
 var SharkBreed = 6
 var Starve = 4
 
-const width = 960
-const height = 540
+const width = 1600
+const height = 900
 
 var startTime time.Time
 var chronon = 0
 
-var Threads = 2
+var Threads = 16
 
 var blue color.Color = color.RGBA{69, 145, 196, 255}
 var yellow color.Color = color.RGBA{255, 230, 120, 255}
@@ -344,7 +344,7 @@ func main() {
 		grid[x%width][x/width].energy = flatGrid[x].energy
 	}
 	startTime = time.Now()
-	if err := ebiten.Run(frame, width, height, 2, "Concurrent Wa-Tor"); err != nil {
+	if err := ebiten.Run(frame, width, height, scale, "Concurrent Wa-Tor"); err != nil {
 		log.Fatal(err)
 	}
 }
