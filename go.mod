@@ -1,4 +1,4 @@
-module github.com/stuart2307/wa-tor
+module wa-tor
 
 go 1.23
 
